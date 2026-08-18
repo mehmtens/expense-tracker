@@ -47,6 +47,9 @@ func createAndSendVerification(ctx context.Context, user User) (string, error) {
 		return "", err
 	}
 	verifyURL := strings.TrimRight(config.FrontendURL, "/") + "/?verify=" + url.QueryEscape(token)
+	if config.ResendAPIKey != "" {
+		return verifyURL, sendVerificationWithResend(ctx, user, verifyURL)
+	}
 	if config.SMTPHost == "" {
 		return verifyURL, nil
 	}
@@ -59,6 +62,43 @@ func createAndSendVerification(ctx context.Context, user User) (string, error) {
 	message := []byte("From: " + from + "\r\nTo: " + user.Email + "\r\nSubject: " + subject + "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body)
 	auth := smtp.PlainAuth("", config.SMTPUser, config.SMTPPassword, config.SMTPHost)
 	return verifyURL, smtp.SendMail(config.SMTPHost+":"+config.SMTPPort, auth, from, []string{user.Email}, message)
+}
+
+func sendVerificationWithResend(ctx context.Context, user User, verifyURL string) error {
+	payload, err := json.Marshal(map[string]interface{}{
+		"from":    config.EmailFrom,
+		"to":      []string{user.Email},
+		"subject": "Flowly hesabınızı doğrulayın",
+		"text": fmt.Sprintf(
+			"Merhaba %s,\n\nHesabınızı doğrulamak için bu bağlantıyı açın:\n%s\n\nBağlantı 24 saat geçerlidir.",
+			user.Username,
+			verifyURL,
+		),
+	})
+	if err != nil {
+		return err
+	}
+
+	requestContext, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestContext, http.MethodPost, "https://api.resend.com/emails", strings.NewReader(string(payload)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+config.ResendAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "flowly/1.0")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("email provider returned %s: %s", resp.Status, strings.TrimSpace(string(data)))
+	}
+	return nil
 }
 
 func verifyEmail(w http.ResponseWriter, r *http.Request) {

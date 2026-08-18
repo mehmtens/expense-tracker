@@ -19,6 +19,10 @@ services:
         sync: false
       - key: GOOGLE_REDIRECT_URL
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: Flowly <onboarding@resend.dev>
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

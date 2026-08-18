@@ -20,6 +20,8 @@ type Config struct {
 	SMTPUser           string
 	SMTPPassword       string
 	SMTPFrom           string
+	ResendAPIKey       string
+	EmailFrom          string
 }
 
 var config Config
@@ -39,7 +41,9 @@ func loadConfig() (Config, error) {
 		GoogleRedirectURL:  envOr("GOOGLE_REDIRECT_URL", "http://localhost:8080/auth/google/callback"),
 		SMTPHost:           os.Getenv("SMTP_HOST"), SMTPPort: envOr("SMTP_PORT", "587"),
 		SMTPUser: os.Getenv("SMTP_USER"), SMTPPassword: os.Getenv("SMTP_PASSWORD"),
-		SMTPFrom: os.Getenv("SMTP_FROM"),
+		SMTPFrom:     os.Getenv("SMTP_FROM"),
+		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
+		EmailFrom:    envOr("EMAIL_FROM", "Flowly <onboarding@resend.dev>"),
 	}
 
 	if configuration.DatabaseURL == "" {
