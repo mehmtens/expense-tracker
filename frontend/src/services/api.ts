@@ -1,6 +1,6 @@
-import { type AuthResponse, type Expense, type ExpenseInput, type User } from '../types';
+import { type AuthResponse, type Expense, type ExpenseInput, type RegisterResponse } from '../types';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const getHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');
@@ -11,7 +11,7 @@ const getHeaders = (): Record<string, string> => {
 };
 
 export const api = {
-  async register(username: string, email: string, password: string): Promise<User> {
+  async register(username: string, email: string, password: string): Promise<RegisterResponse> {
     const res = await fetch(`${API_BASE_URL}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -25,6 +25,18 @@ export const api = {
 
     return res.json();
   },
+
+  async verifyEmail(token: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/verify-email`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+    if (!res.ok) throw new Error(await res.text() || 'E-posta doğrulanamadı.');
+  },
+
+  async resendVerification(email: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/resend-verification`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    if (!res.ok) throw new Error(await res.text() || 'E-posta gönderilemedi.');
+  },
+
+  googleLogin(): void { window.location.assign(`${API_BASE_URL}/auth/google`); },
 
   async login(identifier: string, password: string): Promise<AuthResponse> {
     const res = await fetch(`${API_BASE_URL}/login`, {

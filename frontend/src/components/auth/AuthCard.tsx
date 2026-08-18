@@ -1,287 +1,60 @@
-import React, { useState } from 'react';
-import { Mail, Lock, User as UserIcon, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles, UserRound, WalletCards } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../context/ToastContext';
+import { api } from '../../services/api';
 import { SocialAuth } from './SocialAuth';
 
-export const AuthCard: React.FC = () => {
+type Mode = 'login' | 'register';
+export function AuthCard() {
   const { login, register } = useAuth();
-  const { showToast } = useToast();
+  const [mode, setMode] = useState<Mode>('login'), [username, setUsername] = useState(''), [email, setEmail] = useState(''), [identifier, setIdentifier] = useState(''), [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false), [loading, setLoading] = useState(false), [verificationSent, setVerificationSent] = useState(false), [pendingEmail, setPendingEmail] = useState('');
+  const initialParams = useMemo(() => new URLSearchParams(location.search), []);
+  const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string } | null>(() => {
+    const oauthError = initialParams.get('auth_error');
+    return oauthError ? { kind: 'error', text: oauthError } : null;
+  });
+  const passwordScore = useMemo(() => [password.length >= 8, /[A-Z]/.test(password), /\d/.test(password)].filter(Boolean).length, [password]);
 
-  const [isRegister, setIsRegister] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [loginIdentifier, setLoginIdentifier] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
+  useEffect(() => {
+    const token = initialParams.get('verify');
+    if (!token) return;
+    api.verifyEmail(token).then(() => { setMessage({ kind: 'success', text: 'E-postan doğrulandı. Artık hesabına giriş yapabilirsin.' }); setMode('login'); }).catch((e: Error) => setMessage({ kind: 'error', text: e.message })).finally(() => { setLoading(false); history.replaceState({}, '', location.pathname); });
+  }, [initialParams]);
+  const switchMode = (next: Mode) => { setMode(next); setMessage(null); setVerificationSent(false); };
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setMessage(null);
+    if (mode === 'register' && (!username.trim() || !email.includes('@'))) return setMessage({ kind: 'error', text: 'Kullanıcı adı ve geçerli bir e-posta adresi gir.' });
+    if (password.length < 6) return setMessage({ kind: 'error', text: 'Şifre en az 6 karakter olmalı.' });
+    setLoading(true);
+    try { if (mode === 'register') { const result = await register(username.trim(), email.trim(), password); setPendingEmail(result.user.email); setVerificationSent(true); setMessage({ kind: 'success', text: 'Doğrulama bağlantısını gönderdik. Gelen kutunu kontrol et.' }); } else await login(identifier.trim(), password); }
+    catch (e) { setMessage({ kind: 'error', text: e instanceof Error ? e.message : 'İşlem tamamlanamadı.' }); } finally { setLoading(false); }
+  }
+  async function resend() { setLoading(true); try { await api.resendVerification(pendingEmail || email); setMessage({ kind: 'success', text: 'Yeni doğrulama bağlantısı gönderildi.' }); } catch (e) { setMessage({ kind: 'error', text: e instanceof Error ? e.message : 'Gönderilemedi.' }); } finally { setLoading(false); } }
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [shouldShake, setShouldShake] = useState<boolean>(false);
-
-  const triggerError = (errMsg: string) => {
-    setError(errMsg);
-    setShouldShake(true);
-    setTimeout(() => setShouldShake(false), 500);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (isRegister) {
-      if (!username.trim()) {
-        triggerError('Lütfen bir kullanıcı adı girin.');
-        return;
-      }
-      if (!email.trim() || !email.includes('@')) {
-        triggerError('Lütfen geçerli bir e-posta adresi girin.');
-        return;
-      }
-      if (password.length < 6) {
-        triggerError('Şifre en az 6 karakter olmalıdır.');
-        return;
-      }
-    } else {
-      if (!loginIdentifier.trim()) {
-        triggerError('Lütfen kullanıcı adı veya e-posta girin.');
-        return;
-      }
-      if (!password) {
-        triggerError('Lütfen şifrenizi girin.');
-        return;
-      }
-    }
-
-    setIsLoading(true);
-
-    try {
-      if (isRegister) {
-        await register(username.trim(), email.trim(), password);
-        showToast('Hesabınız başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.', 'success', 'Kayıt Başarılı');
-        setIsRegister(false);
-        setLoginIdentifier(username.trim() || email.trim());
-      } else {
-        await login(loginIdentifier.trim(), password);
-        showToast('Hoş geldiniz! Finansal verileriniz yüklendi.', 'success', 'Giriş Başarılı');
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Kimlik doğrulama sırasında bir hata oluştu.';
-      triggerError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleMock = () => {
-    showToast('Google ile giriş desteği yakında eklenecektir.', 'info', 'Bilgilendirme');
-  };
-
-  return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 bg-slate-950 overflow-hidden">
-      {/* Background Ambient Glows */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-slate-900/30 rounded-full blur-2xl pointer-events-none" />
-
-      {/* Main Container */}
-      <div className="w-full max-w-md relative z-10">
-        {/* Brand Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-500 shadow-lg shadow-blue-500/20 mb-4 border border-blue-400/30">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Expense Tracker</h1>
-          <p className="text-sm text-slate-400 mt-1">Akıllı ve modern kişisel bütçe kontrolü</p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-slate-950/80 glow-card">
-          {/* Segmented Mode Switcher */}
-          <div className="flex bg-slate-950/70 p-1 rounded-2xl border border-slate-800/80 mb-6">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegister(false);
-                setError(null);
-              }}
-              className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer ${
-                !isRegister
-                  ? 'bg-slate-800 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Giriş Yap
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegister(true);
-                setError(null);
-              }}
-              className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer ${
-                isRegister
-                  ? 'bg-slate-800 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Kayıt Ol
-            </button>
-          </div>
-
-          {/* Shake Error Banner */}
-          {error && (
-            <div
-              className={`flex items-start gap-3 bg-rose-500/15 border border-rose-500/30 text-rose-300 p-3.5 rounded-xl text-sm mb-5 ${
-                shouldShake ? 'animate-shake' : ''
-              }`}
-            >
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-400" />
-              <div className="flex-1 leading-snug">{error}</div>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isRegister ? (
-              <>
-                {/* Username Input */}
-                <div className="space-y-1.5">
-                  <label htmlFor="auth-username" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Kullanıcı Adı
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <UserIcon className="w-4 h-4" />
-                    </div>
-                    <input
-                      id="auth-username"
-                      name="username"
-                      type="text"
-                      autoComplete="username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                      placeholder="johndoe"
-                      className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Email Input */}
-                <div className="space-y-1.5">
-                  <label htmlFor="auth-email" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    E-posta Adresi
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <Mail className="w-4 h-4" />
-                    </div>
-                    <input
-                      id="auth-email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      placeholder="ornek@email.com"
-                      className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition"
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Login Identifier (Username or Email) */
-              <div className="space-y-1.5">
-                <label htmlFor="auth-identifier" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                  Kullanıcı Adı veya E-posta
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <UserIcon className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="auth-identifier"
-                    name="loginIdentifier"
-                    type="text"
-                    autoComplete="username"
-                    value={loginIdentifier}
-                    onChange={(e) => setLoginIdentifier(e.target.value)}
-                    required
-                    placeholder="kullanici_adi veya email@site.com"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Password Input */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label htmlFor="auth-password" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                  Şifre
-                </label>
-                {isRegister && (
-                  <span className="text-[11px] text-slate-500">En az 6 karakter</span>
-                )}
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  id="auth-password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete={isRegister ? 'new-password' : 'current-password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-11 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
-                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 active:scale-[0.99] transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>{isRegister ? 'Hesabı Oluştur' : 'Giriş Yap'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Social Auth */}
-          <div className="mt-6">
-            <SocialAuth onGoogleClick={handleGoogleMock} />
-          </div>
-
-          {/* Footer Guarantee */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-slate-500 text-xs">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>256-bit JWT şifreleme ile tam veri güvenliği</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+  return <main className="auth-shell">
+    <div className="auth-noise" aria-hidden="true" />
+    <section className="auth-story" aria-label="Ürün tanıtımı">
+      <a className="auth-brand" href="/" aria-label="Flowly ana sayfa"><span><WalletCards /></span>flowly</a>
+      <div className="orbit-scene" aria-hidden="true"><div className="orbit orbit-one"><span className="orbit-chip chip-income">+₺12.400</span></div><div className="orbit orbit-two"><span className="orbit-chip chip-expense">−₺860</span></div><div className="orbit-core"><Sparkles /><strong>₺38.240</strong><small>net varlık</small></div></div>
+      <div className="story-copy"><span className="eyebrow"><span /> Paranı görünür kıl</span><h1>Bütçen sadece<br />rakam değil, <em>ritimdir.</em></h1><p>Gelirini, giderini ve hedeflerini tek bir akışta gör. Finansal kontrolü yeniden hisset.</p><div className="trust-row"><span><Check /> Banka düzeyinde güvenlik</span><span><Check /> Ücretsiz başlangıç</span></div></div>
+      <p className="story-foot">Akıllı bütçe yönetimi · 2026</p>
+    </section>
+    <section className="auth-panel"><div className="mobile-brand"><WalletCards /> flowly</div><div className="auth-card">
+      <div className="auth-heading"><span className="auth-kicker">{mode === 'login' ? 'Tekrar hoş geldin' : 'Yolculuğun burada başlıyor'}</span><h2>{mode === 'login' ? 'Hesabına giriş yap' : 'Ücretsiz hesabını oluştur'}</h2><p>{mode === 'login' ? 'Finansal akışın kaldığı yerden devam ediyor.' : 'Bir dakikadan kısa sürede kontrolü eline al.'}</p></div>
+      <div className="mode-switch" role="tablist" aria-label="Kimlik doğrulama seçeneği"><button type="button" role="tab" aria-selected={mode === 'login'} onClick={() => switchMode('login')}>Giriş yap</button><button type="button" role="tab" aria-selected={mode === 'register'} onClick={() => switchMode('register')}>Kayıt ol</button></div>
+      {message && <div className={`auth-message ${message.kind}`} role="alert"><ShieldCheck />{message.text}</div>}
+      {verificationSent ? <div className="verify-state"><div className="verify-icon"><Mail /></div><h3>E-postanı kontrol et</h3><p><strong>{pendingEmail}</strong> adresine gönderdiğimiz bağlantıyla hesabını doğrula.</p><button className="primary-action" onClick={resend} disabled={loading}>Bağlantıyı tekrar gönder</button><button className="text-action" onClick={() => switchMode('login')}>Giriş ekranına dön</button></div> : <>
+        <SocialAuth onGoogleClick={() => api.googleLogin()} /><div className="auth-divider"><span>ya da e-posta ile</span></div>
+        <form onSubmit={submit} className="auth-form">
+          {mode === 'register' && <><Field icon={<UserRound />} label="Kullanıcı adı"><input required value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" placeholder="ör. denizaksoy" /></Field><Field icon={<Mail />} label="E-posta"><input required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" type="email" placeholder="sen@ornek.com" /></Field></>}
+          {mode === 'login' && <Field icon={<UserRound />} label="E-posta veya kullanıcı adı"><input required value={identifier} onChange={e => setIdentifier(e.target.value)} autoComplete="username" placeholder="sen@ornek.com" /></Field>}
+          <Field icon={<LockKeyhole />} label="Şifre"><input required value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} type={showPassword ? 'text' : 'password'} placeholder="En az 6 karakter" /><button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}>{showPassword ? <EyeOff /> : <Eye />}</button></Field>
+          {mode === 'register' && <div className="strength" aria-label={`Şifre gücü ${passwordScore} / 3`}><span className={passwordScore > 0 ? 'on' : ''}/><span className={passwordScore > 1 ? 'on' : ''}/><span className={passwordScore > 2 ? 'on' : ''}/><small>{passwordScore < 2 ? 'Daha güçlü bir şifre seç' : 'Güçlü şifre'}</small></div>}
+          <button className="primary-action" disabled={loading}>{loading ? <span className="spinner" /> : <>{mode === 'login' ? 'Akışıma devam et' : 'Hesabımı oluştur'}<ArrowRight /></>}</button>
+        </form></>}
+      <p className="legal">Devam ederek <a href="#terms">Kullanım Koşulları</a> ve <a href="#privacy">Gizlilik Politikası</a>’nı kabul edersin.</p>
+    </div></section>
+  </main>;
+}
+function Field({ icon, label, action, children }: { icon: ReactNode; label: string; action?: ReactNode; children: ReactNode }) { return <label className="auth-field"><span className="field-label">{label}{action}</span><span className="field-control"><i aria-hidden="true">{icon}</i>{children}</span></label>; }

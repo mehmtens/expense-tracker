@@ -1,0 +1,9 @@
+.git
+.env
+.gocache
+frontend/node_modules
+frontend/dist
+frontend/.git
+*.exe
+expense-tracker
+frontend/README.md

@@ -6,18 +6,11 @@ interface SocialAuthProps {
 
 export const SocialAuth: React.FC<SocialAuthProps> = ({ onGoogleClick }) => {
   return (
-    <div className="space-y-4">
-      <div className="relative flex items-center justify-center">
-        <div className="border-t border-slate-800 w-full" />
-        <span className="bg-slate-900 px-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
-          veya
-        </span>
-      </div>
-
+    <div>
       <button
         type="button"
         onClick={onGoogleClick}
-        className="w-full flex items-center justify-center gap-3 bg-slate-950/70 hover:bg-slate-800/80 text-slate-200 font-medium py-3 px-4 rounded-xl border border-slate-800 hover:border-slate-700 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer group"
+        className="auth-google group"
       >
         {/* Google SVG Logo */}
         <svg className="w-5 h-5 shrink-0 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
@@ -38,7 +31,7 @@ export const SocialAuth: React.FC<SocialAuthProps> = ({ onGoogleClick }) => {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
           />
         </svg>
-        <span className="text-sm">Google ile devam et</span>
+        <span>Google ile devam et</span>
       </button>
     </div>
   );
