@@ -293,6 +293,15 @@ func main() {
 	println("Connected to PostgreSQL!")
 	println("Server running on http://localhost:" + config.Port)
 
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if err := db.Ping(r.Context()); err != nil {
+			http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -310,6 +319,10 @@ func main() {
 
 		login(w, r)
 	})
+	http.HandleFunc("/verify-email", verifyEmail)
+	http.HandleFunc("/resend-verification", resendVerification)
+	http.HandleFunc("/auth/google", googleStart)
+	http.HandleFunc("/auth/google/callback", googleCallback)
 
 	http.HandleFunc("/expenses", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {

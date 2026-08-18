@@ -3,6 +3,14 @@ export type User = {
   username: string;
   email: string;
   created_at?: string;
+  email_verified?: boolean;
+  auth_provider?: 'password' | 'google';
+};
+
+export type RegisterResponse = {
+  user: User;
+  verification_required: boolean;
+  development_verification_url?: string;
 };
 
 export type AuthResponse = {

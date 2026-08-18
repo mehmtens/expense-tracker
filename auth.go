@@ -13,11 +13,13 @@ import (
 )
 
 type User struct {
-	ID           int       `json:"id"`
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID            int       `json:"id"`
+	Username      string    `json:"username"`
+	Email         string    `json:"email"`
+	PasswordHash  string    `json:"-"`
+	CreatedAt     time.Time `json:"created_at"`
+	EmailVerified bool      `json:"email_verified"`
+	AuthProvider  string    `json:"auth_provider"`
 }
 
 type RegisterRequest struct {
@@ -76,8 +78,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 	err = db.QueryRow(
 		context.Background(),
 		`INSERT INTO users (username, email, password_hash)
-		 VALUES ($1, $2, $3)
-		 RETURNING id, username, email, created_at`,
+		 VALUES ($1, LOWER($2), $3)
+		 RETURNING id, username, email, created_at, email_verified, auth_provider`,
 		request.Username,
 		request.Email,
 		string(passwordHash),
@@ -86,6 +88,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		&user.Username,
 		&user.Email,
 		&user.CreatedAt,
+		&user.EmailVerified, &user.AuthProvider,
 	)
 
 	if err != nil {
@@ -94,9 +97,17 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	verificationURL, mailErr := createAndSendVerification(r.Context(), user)
+	response := map[string]interface{}{"user": user, "verification_required": true}
+	if mailErr != nil && config.SMTPHost != "" {
+		http.Error(w, "Verification email could not be sent", http.StatusBadGateway)
+		return
+	}
+	if config.SMTPHost == "" {
+		response["development_verification_url"] = verificationURL
+	}
 	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(response)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -122,9 +133,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	err = db.QueryRow(
 		context.Background(),
-		`SELECT id, username, email, password_hash, created_at
+		`SELECT id, username, email, password_hash, created_at, email_verified, auth_provider
 		 FROM users
-		 WHERE email = $1 OR username = $1`,
+		 WHERE email = LOWER($1) OR username = $1`,
 		identifier,
 	).Scan(
 		&user.ID,
@@ -132,10 +143,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 		&user.Email,
 		&user.PasswordHash,
 		&user.CreatedAt,
+		&user.EmailVerified, &user.AuthProvider,
 	)
 
 	if err != nil {
 		http.Error(w, "Invalid username/email or password", http.StatusUnauthorized)
+		return
+	}
+	if !user.EmailVerified {
+		http.Error(w, "E-posta adresinizi doğrulayın.", http.StatusForbidden)
 		return
 	}
 

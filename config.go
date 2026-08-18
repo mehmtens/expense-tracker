@@ -8,9 +8,18 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	JWTSecret   string
-	Port        string
+	DatabaseURL        string
+	JWTSecret          string
+	Port               string
+	FrontendURL        string
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
+	SMTPHost           string
+	SMTPPort           string
+	SMTPUser           string
+	SMTPPassword       string
+	SMTPFrom           string
 }
 
 var config Config
@@ -21,9 +30,16 @@ func loadConfig() (Config, error) {
 	}
 
 	configuration := Config{
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
-		Port:        os.Getenv("PORT"),
+		DatabaseURL:        os.Getenv("DATABASE_URL"),
+		JWTSecret:          os.Getenv("JWT_SECRET"),
+		Port:               os.Getenv("PORT"),
+		FrontendURL:        envOr("FRONTEND_URL", "http://localhost:5173"),
+		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURL:  envOr("GOOGLE_REDIRECT_URL", "http://localhost:8080/auth/google/callback"),
+		SMTPHost:           os.Getenv("SMTP_HOST"), SMTPPort: envOr("SMTP_PORT", "587"),
+		SMTPUser: os.Getenv("SMTP_USER"), SMTPPassword: os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom: os.Getenv("SMTP_FROM"),
 	}
 
 	if configuration.DatabaseURL == "" {
@@ -39,6 +55,13 @@ func loadConfig() (Config, error) {
 	}
 
 	return configuration, nil
+}
+
+func envOr(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }
 
 func loadDotEnv(filename string) error {

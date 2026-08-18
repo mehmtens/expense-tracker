@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { type User } from '../types';
+import React, { createContext, useContext, useState } from 'react';
+import { type RegisterResponse, type User } from '../types';
 import { api } from '../services/api';
 
 interface AuthContextType {
@@ -8,39 +8,35 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (identifier: string, pass: string) => Promise<void>;
-  register: (username: string, email: string, pass: string) => Promise<void>;
+  register: (username: string, email: string, pass: string) => Promise<RegisterResponse>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('user');
-    if (!savedUser) return null;
+function readInitialAuth(): { token: string | null; user: User | null } {
+  const params = new URLSearchParams(window.location.search);
+  const oauthToken = params.get('oauth_token'), encodedUser = params.get('oauth_user');
+  if (oauthToken && encodedUser) {
     try {
-      return JSON.parse(savedUser) as User;
-    } catch {
-      return null;
-    }
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+      const decoded = encodedUser.replace(/-/g, '+').replace(/_/g, '/');
+      const oauthUser = JSON.parse(decodeURIComponent(escape(atob(decoded)))) as User;
+      localStorage.setItem('token', oauthToken); localStorage.setItem('user', JSON.stringify(oauthUser));
+      window.history.replaceState({}, '', window.location.pathname);
+      return { token: oauthToken, user: oauthUser };
+    } catch { localStorage.removeItem('token'); localStorage.removeItem('user'); }
+  }
+  const token = localStorage.getItem('token'), savedUser = localStorage.getItem('user');
+  try { return { token, user: savedUser ? JSON.parse(savedUser) as User : null }; }
+  catch { return { token: null, user: null }; }
+}
 
-  useEffect(() => {
-    // Initial validation
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        setUser(null);
-      }
-    }
-    setIsLoading(false);
-  }, []);
+const initialAuth = readInitialAuth();
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [token, setToken] = useState<string | null>(initialAuth.token);
+  const [user, setUser] = useState<User | null>(initialAuth.user);
+  const isLoading = false;
 
   const login = async (identifier: string, pass: string) => {
     const data = await api.login(identifier, pass);
@@ -51,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (username: string, email: string, pass: string) => {
-    await api.register(username, email, pass);
+    return api.register(username, email, pass);
   };
 
   const logout = () => {
