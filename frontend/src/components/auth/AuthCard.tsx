@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles, UserRound, WalletCards } from 'lucide-react';
+import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, UserRound, WalletCards } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { SocialAuth } from './SocialAuth';
@@ -39,7 +39,7 @@ export function AuthCard() {
     <div className="auth-noise" aria-hidden="true" />
     <section className="auth-story" aria-label="Ürün tanıtımı">
       <a className="auth-brand" href="/" aria-label="Kuruş ana sayfa"><span><WalletCards /></span>Kuruş</a>
-      <div className="orbit-scene" aria-hidden="true"><div className="orbit orbit-one"><span className="orbit-chip chip-income">+₺12.400</span></div><div className="orbit orbit-two"><span className="orbit-chip chip-expense">−₺860</span></div><div className="orbit-core"><Sparkles /><strong>₺38.240</strong><small>net varlık</small></div></div>
+      <div className="brand-showcase" aria-hidden="true"><img src="/kurus-social.png" alt="" /><span /></div>
       <div className="story-copy"><span className="eyebrow"><span /> Her kuruşun görünür</span><h1>Para sende,<br /><em>karar sende.</em></h1><p>Gelirini, giderini ve hedeflerini tek yerde gör. Bütçeni güvenle yönet, kararlarını net ver.</p><div className="trust-row"><span><Check /> Banka düzeyinde güvenlik</span><span><Check /> Ücretsiz başlangıç</span></div></div>
       <p className="story-foot">Kuruş · Akıllı bütçe yönetimi</p>
     </section>

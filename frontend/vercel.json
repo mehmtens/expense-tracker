@@ -3,14 +3,6 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "expense-tracker-five-sigma-96.vercel.app" }],
-      "destination": "https://kurus-finans.vercel.app/:path*",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
       "source": "/auth/google",
