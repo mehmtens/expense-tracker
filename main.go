@@ -302,30 +302,30 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/register", authLimiter.limit("register", 5, time.Hour, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		register(w, r)
-	})
+	}))
 
-	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/login", authLimiter.limit("login", 10, 5*time.Minute, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		login(w, r)
-	})
+	}))
 	http.HandleFunc("/verify-email", verifyEmail)
-	http.HandleFunc("/resend-verification", resendVerification)
-	http.HandleFunc("/forgot-password", forgotPassword)
-	http.HandleFunc("/reset-password", resetPassword)
-	http.HandleFunc("/auth/google", googleStart)
+	http.HandleFunc("/resend-verification", authLimiter.limit("resend-verification", 5, 15*time.Minute, resendVerification))
+	http.HandleFunc("/forgot-password", authLimiter.limit("forgot-password", 5, 15*time.Minute, forgotPassword))
+	http.HandleFunc("/reset-password", authLimiter.limit("reset-password", 10, 15*time.Minute, resetPassword))
+	http.HandleFunc("/auth/google", authLimiter.limit("google-start", 20, 5*time.Minute, googleStart))
 	http.HandleFunc("/auth/google/callback", googleCallback)
-	http.HandleFunc("/auth/google/kurus", googleStart)
+	http.HandleFunc("/auth/google/kurus", authLimiter.limit("google-start", 20, 5*time.Minute, googleStart))
 	http.HandleFunc("/auth/google/kurus/callback", googleCallback)
 
 	http.HandleFunc("/expenses", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
