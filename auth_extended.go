@@ -222,6 +222,9 @@ func googleRedirectURL(r *http.Request) string {
 	if err != nil || frontend.Host == "" {
 		return config.GoogleRedirectURL
 	}
+	if r.URL.Query().Get("kurus_proxy") == "1" {
+		return frontend.Scheme + "://" + frontend.Host + "/auth/google/callback"
+	}
 
 	forwardedHost := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Host"), ",")[0])
 	if strings.EqualFold(forwardedHost, frontend.Host) {
