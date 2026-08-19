@@ -12,7 +12,6 @@ import (
 	"html"
 	"io"
 	"net/http"
-	"net/smtp"
 	"net/url"
 	"strings"
 	"time"
@@ -47,25 +46,11 @@ func createAndSendVerification(ctx context.Context, user User) (string, error) {
 		return "", err
 	}
 	verifyURL := publicFrontendURL() + "/?verify=" + url.QueryEscape(token)
-	if config.BrevoAPIKey != "" {
+	if config.BrevoAPIKey != "" && config.BrevoSenderEmail != "" {
 		text := fmt.Sprintf("Merhaba %s,\n\nHesabınızı doğrulamak için bu bağlantıyı açın:\n%s\n\nBağlantı 24 saat geçerlidir.", user.Username, verifyURL)
 		return verifyURL, sendWithBrevo(ctx, user, "Kuruş hesabınızı doğrulayın", text)
 	}
-	if config.ResendAPIKey != "" {
-		return verifyURL, sendVerificationWithResend(ctx, user, verifyURL)
-	}
-	if config.SMTPHost == "" {
-		return verifyURL, nil
-	}
-	from := config.SMTPFrom
-	if from == "" {
-		from = config.SMTPUser
-	}
-	subject := "Kuruş hesabınızı doğrulayın"
-	body := fmt.Sprintf("Merhaba %s,\r\n\r\nHesabınızı doğrulamak için bu bağlantıyı açın:\r\n%s\r\n\r\nBağlantı 24 saat geçerlidir.", user.Username, verifyURL)
-	message := []byte("From: " + from + "\r\nTo: " + user.Email + "\r\nSubject: " + subject + "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body)
-	auth := smtp.PlainAuth("", config.SMTPUser, config.SMTPPassword, config.SMTPHost)
-	return verifyURL, smtp.SendMail(config.SMTPHost+":"+config.SMTPPort, auth, from, []string{user.Email}, message)
+	return verifyURL, fmt.Errorf("transactional email is not configured")
 }
 
 func sendWithBrevo(ctx context.Context, user User, subject, textContent string) error {
@@ -186,8 +171,6 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 		if tokenErr == nil && config.BrevoAPIKey != "" {
 			resetURL := publicFrontendURL() + "/?reset=" + url.QueryEscape(token)
 			tokenErr = sendWithBrevo(r.Context(), user, "Kuruş şifrenizi yenileyin", fmt.Sprintf("Merhaba %s,\n\nŞifrenizi yenilemek için bu bağlantıyı açın:\n%s\n\nBağlantı 30 dakika geçerlidir.", user.Username, resetURL))
-		} else if tokenErr == nil && config.ResendAPIKey != "" {
-			tokenErr = sendPasswordResetWithResend(r.Context(), user, publicFrontendURL()+"/?reset="+url.QueryEscape(token))
 		}
 		if tokenErr != nil {
 			http.Error(w, "Şifre yenileme e-postası gönderilemedi.", http.StatusBadGateway)
@@ -261,7 +244,7 @@ func resendVerification(w http.ResponseWriter, r *http.Request) {
 	err := db.QueryRow(r.Context(), `SELECT id, username, email, created_at, email_verified, auth_provider FROM users WHERE email=LOWER($1)`, strings.TrimSpace(body.Email)).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.EmailVerified, &user.AuthProvider)
 	if err == nil && !user.EmailVerified {
 		if _, sendErr := createAndSendVerification(r.Context(), user); sendErr != nil {
-			http.Error(w, "Verification email could not be sent: "+sendErr.Error(), http.StatusBadGateway)
+			http.Error(w, "Doğrulama e-postası gönderilemedi.", http.StatusBadGateway)
 			return
 		}
 	}
