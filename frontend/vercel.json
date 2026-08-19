@@ -4,6 +4,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    {
+      "source": "/auth/google/callback",
+      "destination": "https://flowly-api-2o3u.onrender.com/auth/google/callback"
+    },
     { "source": "/((?!assets/|favicon.svg).*)", "destination": "/index.html" }
   ]
 }
