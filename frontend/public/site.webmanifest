@@ -1,0 +1,10 @@
+{
+  "name": "Kuruş — Para sende, karar sende.",
+  "short_name": "Kuruş",
+  "description": "Gelirini, giderini ve hedeflerini tek yerde yönet.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#071525",
+  "theme_color": "#071525",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
