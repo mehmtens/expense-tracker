@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, UserRound, WalletCards } from 'lucide-react';
+import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { SocialAuth } from './SocialAuth';
+import { KurusLogo } from '../ui/KurusLogo';
 
 type Mode = 'login' | 'register' | 'forgot' | 'reset';
 const initialMode = (): Mode => new URLSearchParams(location.search).has('reset') ? 'reset' : 'login';
@@ -38,12 +39,12 @@ export function AuthCard() {
   return <main className="auth-shell">
     <div className="auth-noise" aria-hidden="true" />
     <section className="auth-story" aria-label="Ürün tanıtımı">
-      <a className="auth-brand" href="/" aria-label="Kuruş ana sayfa"><span><WalletCards /></span>Kuruş</a>
+      <a className="auth-brand" href="/" aria-label="Kuruş ana sayfa"><KurusLogo />Kuruş</a>
       <div className="brand-showcase" aria-hidden="true"><img src="/kurus-social.png" alt="" /><span /></div>
       <div className="story-copy"><span className="eyebrow"><span /> Her kuruşun görünür</span><h1>Para sende,<br /><em>karar sende.</em></h1><p>Gelirini, giderini ve hedeflerini tek yerde gör. Bütçeni güvenle yönet, kararlarını net ver.</p><div className="trust-row"><span><Check /> Banka düzeyinde güvenlik</span><span><Check /> Ücretsiz başlangıç</span></div></div>
       <p className="story-foot">Kuruş · Akıllı bütçe yönetimi</p>
     </section>
-    <section className="auth-panel"><div className="mobile-brand"><WalletCards /> Kuruş</div><div className="auth-card">
+    <section className="auth-panel"><div className="mobile-brand"><KurusLogo /> Kuruş</div><div className="auth-card">
       <div className="auth-heading"><span className="auth-kicker">{mode === 'login' ? 'Tekrar hoş geldin' : mode === 'register' ? 'Kontrolü eline al' : 'Hesap güvenliği'}</span><h2>{mode === 'login' ? 'Hesabına giriş yap' : mode === 'register' ? 'Ücretsiz hesabını oluştur' : mode === 'forgot' ? 'Şifreni yenile' : 'Yeni şifreni belirle'}</h2><p>{mode === 'login' ? 'Bütçen kaldığı yerden devam ediyor.' : mode === 'register' ? 'Bir dakikadan kısa sürede Kuruş’a katıl.' : mode === 'forgot' ? 'E-postana güvenli bir yenileme bağlantısı göndereceğiz.' : 'En az 8 karakterlik güçlü bir şifre seç.'}</p></div>
       {(mode === 'login' || mode === 'register') && <div className="mode-switch" role="tablist" aria-label="Kimlik doğrulama seçeneği"><button type="button" role="tab" aria-selected={mode === 'login'} onClick={() => switchMode('login')}>Giriş yap</button><button type="button" role="tab" aria-selected={mode === 'register'} onClick={() => switchMode('register')}>Kayıt ol</button></div>}
       {message && <div className={`auth-message ${message.kind}`} role="alert"><ShieldCheck />{message.text}</div>}
