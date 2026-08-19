@@ -53,7 +53,7 @@ export function AuthCard() {
           {mode === 'register' && <div className="strength" aria-label={`Şifre gücü ${passwordScore} / 3`}><span className={passwordScore > 0 ? 'on' : ''}/><span className={passwordScore > 1 ? 'on' : ''}/><span className={passwordScore > 2 ? 'on' : ''}/><small>{passwordScore < 2 ? 'Daha güçlü bir şifre seç' : 'Güçlü şifre'}</small></div>}
           <button className="primary-action" disabled={loading}>{loading ? <span className="spinner" /> : <>{mode === 'login' ? 'Akışıma devam et' : 'Hesabımı oluştur'}<ArrowRight /></>}</button>
         </form></>}
-      <p className="legal">Devam ederek <a href="#terms">Kullanım Koşulları</a> ve <a href="#privacy">Gizlilik Politikası</a>’nı kabul edersin.</p>
+      <p className="legal">Devam ederek <a href="/terms.html" target="_blank" rel="noreferrer">Kullanım Koşulları</a> ve <a href="/privacy.html" target="_blank" rel="noreferrer">Gizlilik Politikası</a>’nı kabul edersin.</p>
     </div></section>
   </main>;
 }
