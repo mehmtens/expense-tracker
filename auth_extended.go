@@ -151,7 +151,8 @@ func googleStart(w http.ResponseWriter, r *http.Request) {
 	}
 	state, _ := randomToken(24)
 	http.SetCookie(w, &http.Cookie{Name: "oauth_state", Value: state, Path: "/", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode, MaxAge: 600})
-	q := url.Values{"client_id": {config.GoogleClientID}, "redirect_uri": {config.GoogleRedirectURL}, "response_type": {"code"}, "scope": {"openid email profile"}, "state": {state}, "prompt": {"select_account"}}
+	redirectURL := googleRedirectURL(r)
+	q := url.Values{"client_id": {config.GoogleClientID}, "redirect_uri": {redirectURL}, "response_type": {"code"}, "scope": {"openid email profile"}, "state": {state}, "prompt": {"select_account"}}
 	http.Redirect(w, r, "https://accounts.google.com/o/oauth2/v2/auth?"+q.Encode(), http.StatusFound)
 }
 
@@ -161,7 +162,7 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 		redirectAuthError(w, r, "Güvenlik doğrulaması başarısız.")
 		return
 	}
-	form := url.Values{"code": {r.URL.Query().Get("code")}, "client_id": {config.GoogleClientID}, "client_secret": {config.GoogleClientSecret}, "redirect_uri": {config.GoogleRedirectURL}, "grant_type": {"authorization_code"}}
+	form := url.Values{"code": {r.URL.Query().Get("code")}, "client_id": {config.GoogleClientID}, "client_secret": {config.GoogleClientSecret}, "redirect_uri": {googleRedirectURL(r)}, "grant_type": {"authorization_code"}}
 	resp, err := http.PostForm("https://oauth2.googleapis.com/token", form)
 	if err != nil || resp.StatusCode != 200 {
 		redirectAuthError(w, r, "Google oturumu açılamadı.")
@@ -214,6 +215,20 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 	userJSON, _ := json.Marshal(user)
 	target := strings.TrimRight(config.FrontendURL, "/") + "/?oauth_token=" + url.QueryEscape(token) + "&oauth_user=" + url.QueryEscape(base64.RawURLEncoding.EncodeToString(userJSON))
 	http.Redirect(w, r, target, http.StatusFound)
+}
+
+func googleRedirectURL(r *http.Request) string {
+	frontend, err := url.Parse(config.FrontendURL)
+	if err != nil || frontend.Host == "" {
+		return config.GoogleRedirectURL
+	}
+
+	forwardedHost := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Host"), ",")[0])
+	if strings.EqualFold(forwardedHost, frontend.Host) {
+		return frontend.Scheme + "://" + frontend.Host + "/auth/google/callback"
+	}
+
+	return config.GoogleRedirectURL
 }
 
 func issueToken(user User) (string, error) {
