@@ -101,6 +101,94 @@ func sendVerificationWithResend(ctx context.Context, user User, verifyURL string
 	return nil
 }
 
+func sendPasswordResetWithResend(ctx context.Context, user User, resetURL string) error {
+	payload, err := json.Marshal(map[string]interface{}{
+		"from": config.EmailFrom, "to": []string{user.Email}, "subject": "Kuruş şifrenizi yenileyin",
+		"text": fmt.Sprintf("Merhaba %s,\n\nŞifrenizi yenilemek için bu bağlantıyı açın:\n%s\n\nBağlantı 30 dakika geçerlidir. Bu isteği siz yapmadıysanız e-postayı yok sayabilirsiniz.", user.Username, resetURL),
+	})
+	if err != nil {
+		return err
+	}
+	requestContext, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestContext, http.MethodPost, "https://api.resend.com/emails", strings.NewReader(string(payload)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+config.ResendAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "kurus/1.0")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("email provider returned %s: %s", resp.Status, strings.TrimSpace(string(data)))
+	}
+	return nil
+}
+
+func forgotPassword(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Email string `json:"email"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	var user User
+	err := db.QueryRow(r.Context(), `SELECT id,username,email,created_at,email_verified,auth_provider FROM users WHERE email=LOWER($1) AND auth_provider='password'`, strings.TrimSpace(body.Email)).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.EmailVerified, &user.AuthProvider)
+	if err == nil {
+		token, tokenErr := randomToken(32)
+		if tokenErr == nil {
+			_, tokenErr = db.Exec(r.Context(), `DELETE FROM password_reset_tokens WHERE user_id=$1`, user.ID)
+		}
+		if tokenErr == nil {
+			_, tokenErr = db.Exec(r.Context(), `INSERT INTO password_reset_tokens(user_id,token_hash,expires_at) VALUES($1,$2,$3)`, user.ID, tokenHash(token), time.Now().Add(30*time.Minute))
+		}
+		if tokenErr == nil && config.ResendAPIKey != "" {
+			tokenErr = sendPasswordResetWithResend(r.Context(), user, publicFrontendURL()+"/?reset="+url.QueryEscape(token))
+		}
+		if tokenErr != nil {
+			http.Error(w, "Şifre yenileme e-postası gönderilemedi.", http.StatusBadGateway)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Hesap uygunsa şifre yenileme bağlantısı gönderildi."})
+}
+
+func resetPassword(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Token    string `json:"token"`
+		Password string `json:"password"`
+	}
+	if json.NewDecoder(r.Body).Decode(&body) != nil || body.Token == "" || len(body.Password) < 8 {
+		http.Error(w, "Geçersiz bağlantı veya şifre en az 8 karakter değil.", http.StatusBadRequest)
+		return
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Şifre oluşturulamadı.", http.StatusInternalServerError)
+		return
+	}
+	result, err := db.Exec(r.Context(), `UPDATE users SET password_hash=$1 WHERE id=(SELECT user_id FROM password_reset_tokens WHERE token_hash=$2 AND expires_at>NOW())`, string(hash), tokenHash(body.Token))
+	if err != nil || result.RowsAffected() == 0 {
+		http.Error(w, "Şifre yenileme bağlantısının süresi dolmuş veya bağlantı geçersiz.", http.StatusBadRequest)
+		return
+	}
+	_, _ = db.Exec(r.Context(), `DELETE FROM password_reset_tokens WHERE token_hash=$1`, tokenHash(body.Token))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"reset": true})
+}
+
 func verifyEmail(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", 405)

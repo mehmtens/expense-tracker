@@ -36,6 +36,16 @@ export const api = {
     if (!res.ok) throw new Error(await res.text() || 'E-posta gönderilemedi.');
   },
 
+  async forgotPassword(email: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/forgot-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    if (!res.ok) throw new Error(await res.text() || 'Şifre yenileme e-postası gönderilemedi.');
+  },
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, password }) });
+    if (!res.ok) throw new Error(await res.text() || 'Şifre yenilenemedi.');
+  },
+
   // Keep the OAuth state cookie and callback on the public Kuruş domain.
   googleLogin(): void { window.location.assign('/auth/google'); },
 

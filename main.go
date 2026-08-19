@@ -321,6 +321,8 @@ func main() {
 	})
 	http.HandleFunc("/verify-email", verifyEmail)
 	http.HandleFunc("/resend-verification", resendVerification)
+	http.HandleFunc("/forgot-password", forgotPassword)
+	http.HandleFunc("/reset-password", resetPassword)
 	http.HandleFunc("/auth/google", googleStart)
 	http.HandleFunc("/auth/google/callback", googleCallback)
 	http.HandleFunc("/auth/google/kurus", googleStart)
