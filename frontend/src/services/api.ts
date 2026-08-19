@@ -36,7 +36,8 @@ export const api = {
     if (!res.ok) throw new Error(await res.text() || 'E-posta gönderilemedi.');
   },
 
-  googleLogin(): void { window.location.assign(`${API_BASE_URL}/auth/google`); },
+  // Keep the OAuth state cookie and callback on the public Kuruş domain.
+  googleLogin(): void { window.location.assign('/auth/google'); },
 
   async login(identifier: string, password: string): Promise<AuthResponse> {
     const res = await fetch(`${API_BASE_URL}/login`, {
