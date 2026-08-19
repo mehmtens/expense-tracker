@@ -46,7 +46,7 @@ func createAndSendVerification(ctx context.Context, user User) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	verifyURL := strings.TrimRight(config.FrontendURL, "/") + "/?verify=" + url.QueryEscape(token)
+	verifyURL := publicFrontendURL() + "/?verify=" + url.QueryEscape(token)
 	if config.ResendAPIKey != "" {
 		return verifyURL, sendVerificationWithResend(ctx, user, verifyURL)
 	}
@@ -213,7 +213,7 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userJSON, _ := json.Marshal(user)
-	target := strings.TrimRight(config.FrontendURL, "/") + "/?oauth_token=" + url.QueryEscape(token) + "&oauth_user=" + url.QueryEscape(base64.RawURLEncoding.EncodeToString(userJSON))
+	target := publicFrontendURL() + "/?oauth_token=" + url.QueryEscape(token) + "&oauth_user=" + url.QueryEscape(base64.RawURLEncoding.EncodeToString(userJSON))
 	http.Redirect(w, r, target, http.StatusFound)
 }
 
@@ -241,5 +241,14 @@ func issueToken(user User) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(config.JWTSecret))
 }
 func redirectAuthError(w http.ResponseWriter, r *http.Request, message string) {
-	http.Redirect(w, r, strings.TrimRight(config.FrontendURL, "/")+"/?auth_error="+url.QueryEscape(html.EscapeString(message)), http.StatusFound)
+	http.Redirect(w, r, publicFrontendURL()+"/?auth_error="+url.QueryEscape(html.EscapeString(message)), http.StatusFound)
+}
+
+func publicFrontendURL() string {
+	const canonicalURL = "https://kurus-finans.vercel.app"
+	configured := strings.TrimRight(config.FrontendURL, "/")
+	if strings.HasSuffix(strings.ToLower(configured), ".vercel.app") {
+		return canonicalURL
+	}
+	return configured
 }
