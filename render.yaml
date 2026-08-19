@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: flowly-api
+    name: kurus-api
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free

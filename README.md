@@ -1,4 +1,6 @@
-# Personal Expense Tracker
+# Kuruş
+
+**Para sende, karar sende.**
 
 Kişisel gelir ve giderlerin güvenli bir şekilde takip edilmesini sağlayan tam kapsamlı (full-stack) web uygulaması.
 
