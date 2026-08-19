@@ -218,12 +218,14 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func googleRedirectURL(r *http.Request) string {
+	const kurusOAuthCallback = "https://kurus-finans.vercel.app/auth/google/callback"
+
 	frontend, err := url.Parse(config.FrontendURL)
 	if err != nil || frontend.Host == "" {
 		return config.GoogleRedirectURL
 	}
 	if r.URL.Query().Get("kurus_proxy") == "1" {
-		return frontend.Scheme + "://" + frontend.Host + "/auth/google/callback"
+		return kurusOAuthCallback
 	}
 
 	forwardedHost := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Host"), ",")[0])
