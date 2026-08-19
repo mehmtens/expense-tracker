@@ -261,7 +261,7 @@ func resendVerification(w http.ResponseWriter, r *http.Request) {
 	err := db.QueryRow(r.Context(), `SELECT id, username, email, created_at, email_verified, auth_provider FROM users WHERE email=LOWER($1)`, strings.TrimSpace(body.Email)).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.EmailVerified, &user.AuthProvider)
 	if err == nil && !user.EmailVerified {
 		if _, sendErr := createAndSendVerification(r.Context(), user); sendErr != nil {
-			http.Error(w, "Verification email could not be sent", http.StatusBadGateway)
+			http.Error(w, "Verification email could not be sent: "+sendErr.Error(), http.StatusBadGateway)
 			return
 		}
 	}
