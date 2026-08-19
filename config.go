@@ -43,7 +43,7 @@ func loadConfig() (Config, error) {
 		SMTPUser: os.Getenv("SMTP_USER"), SMTPPassword: os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:     os.Getenv("SMTP_FROM"),
 		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
-		EmailFrom:    envOr("EMAIL_FROM", "Flowly <onboarding@resend.dev>"),
+		EmailFrom:    envOr("EMAIL_FROM", "Kuruş <onboarding@resend.dev>"),
 	}
 
 	if configuration.DatabaseURL == "" {

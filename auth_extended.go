@@ -57,7 +57,7 @@ func createAndSendVerification(ctx context.Context, user User) (string, error) {
 	if from == "" {
 		from = config.SMTPUser
 	}
-	subject := "Bütçe hesabınızı doğrulayın"
+	subject := "Kuruş hesabınızı doğrulayın"
 	body := fmt.Sprintf("Merhaba %s,\r\n\r\nHesabınızı doğrulamak için bu bağlantıyı açın:\r\n%s\r\n\r\nBağlantı 24 saat geçerlidir.", user.Username, verifyURL)
 	message := []byte("From: " + from + "\r\nTo: " + user.Email + "\r\nSubject: " + subject + "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body)
 	auth := smtp.PlainAuth("", config.SMTPUser, config.SMTPPassword, config.SMTPHost)
@@ -68,7 +68,7 @@ func sendVerificationWithResend(ctx context.Context, user User, verifyURL string
 	payload, err := json.Marshal(map[string]interface{}{
 		"from":    config.EmailFrom,
 		"to":      []string{user.Email},
-		"subject": "Flowly hesabınızı doğrulayın",
+		"subject": "Kuruş hesabınızı doğrulayın",
 		"text": fmt.Sprintf(
 			"Merhaba %s,\n\nHesabınızı doğrulamak için bu bağlantıyı açın:\n%s\n\nBağlantı 24 saat geçerlidir.",
 			user.Username,
@@ -87,7 +87,7 @@ func sendVerificationWithResend(ctx context.Context, user User, verifyURL string
 	}
 	req.Header.Set("Authorization", "Bearer "+config.ResendAPIKey)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "flowly/1.0")
+	req.Header.Set("User-Agent", "kurus/1.0")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

@@ -35,13 +35,13 @@ export function AuthCard() {
   return <main className="auth-shell">
     <div className="auth-noise" aria-hidden="true" />
     <section className="auth-story" aria-label="Ürün tanıtımı">
-      <a className="auth-brand" href="/" aria-label="Flowly ana sayfa"><span><WalletCards /></span>flowly</a>
+      <a className="auth-brand" href="/" aria-label="Kuruş ana sayfa"><span><WalletCards /></span>Kuruş</a>
       <div className="orbit-scene" aria-hidden="true"><div className="orbit orbit-one"><span className="orbit-chip chip-income">+₺12.400</span></div><div className="orbit orbit-two"><span className="orbit-chip chip-expense">−₺860</span></div><div className="orbit-core"><Sparkles /><strong>₺38.240</strong><small>net varlık</small></div></div>
-      <div className="story-copy"><span className="eyebrow"><span /> Paranı görünür kıl</span><h1>Bütçen sadece<br />rakam değil, <em>ritimdir.</em></h1><p>Gelirini, giderini ve hedeflerini tek bir akışta gör. Finansal kontrolü yeniden hisset.</p><div className="trust-row"><span><Check /> Banka düzeyinde güvenlik</span><span><Check /> Ücretsiz başlangıç</span></div></div>
-      <p className="story-foot">Akıllı bütçe yönetimi · 2026</p>
+      <div className="story-copy"><span className="eyebrow"><span /> Her kuruşun görünür</span><h1>Para sende,<br /><em>karar sende.</em></h1><p>Gelirini, giderini ve hedeflerini tek yerde gör. Bütçeni güvenle yönet, kararlarını net ver.</p><div className="trust-row"><span><Check /> Banka düzeyinde güvenlik</span><span><Check /> Ücretsiz başlangıç</span></div></div>
+      <p className="story-foot">Kuruş · Akıllı bütçe yönetimi</p>
     </section>
-    <section className="auth-panel"><div className="mobile-brand"><WalletCards /> flowly</div><div className="auth-card">
-      <div className="auth-heading"><span className="auth-kicker">{mode === 'login' ? 'Tekrar hoş geldin' : 'Yolculuğun burada başlıyor'}</span><h2>{mode === 'login' ? 'Hesabına giriş yap' : 'Ücretsiz hesabını oluştur'}</h2><p>{mode === 'login' ? 'Finansal akışın kaldığı yerden devam ediyor.' : 'Bir dakikadan kısa sürede kontrolü eline al.'}</p></div>
+    <section className="auth-panel"><div className="mobile-brand"><WalletCards /> Kuruş</div><div className="auth-card">
+      <div className="auth-heading"><span className="auth-kicker">{mode === 'login' ? 'Tekrar hoş geldin' : 'Kontrolü eline al'}</span><h2>{mode === 'login' ? 'Hesabına giriş yap' : 'Ücretsiz hesabını oluştur'}</h2><p>{mode === 'login' ? 'Bütçen kaldığı yerden devam ediyor.' : 'Bir dakikadan kısa sürede Kuruş’a katıl.'}</p></div>
       <div className="mode-switch" role="tablist" aria-label="Kimlik doğrulama seçeneği"><button type="button" role="tab" aria-selected={mode === 'login'} onClick={() => switchMode('login')}>Giriş yap</button><button type="button" role="tab" aria-selected={mode === 'register'} onClick={() => switchMode('register')}>Kayıt ol</button></div>
       {message && <div className={`auth-message ${message.kind}`} role="alert"><ShieldCheck />{message.text}</div>}
       {verificationSent ? <div className="verify-state"><div className="verify-icon"><Mail /></div><h3>E-postanı kontrol et</h3><p><strong>{pendingEmail}</strong> adresine gönderdiğimiz bağlantıyla hesabını doğrula.</p><button className="primary-action" onClick={resend} disabled={loading}>Bağlantıyı tekrar gönder</button><button className="text-action" onClick={() => switchMode('login')}>Giriş ekranına dön</button></div> : <>
