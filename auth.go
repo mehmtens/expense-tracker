@@ -99,7 +99,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	verificationURL, mailErr := createAndSendVerification(r.Context(), user)
 	response := map[string]interface{}{"user": user, "verification_required": true}
-	emailConfigured := config.ResendAPIKey != "" || config.SMTPHost != ""
+	emailConfigured := config.BrevoAPIKey != "" || config.ResendAPIKey != "" || config.SMTPHost != ""
 	if mailErr != nil && emailConfigured {
 		http.Error(w, "Verification email could not be sent", http.StatusBadGateway)
 		return

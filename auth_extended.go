@@ -47,6 +47,10 @@ func createAndSendVerification(ctx context.Context, user User) (string, error) {
 		return "", err
 	}
 	verifyURL := publicFrontendURL() + "/?verify=" + url.QueryEscape(token)
+	if config.BrevoAPIKey != "" {
+		text := fmt.Sprintf("Merhaba %s,\n\nHesabınızı doğrulamak için bu bağlantıyı açın:\n%s\n\nBağlantı 24 saat geçerlidir.", user.Username, verifyURL)
+		return verifyURL, sendWithBrevo(ctx, user, "Kuruş hesabınızı doğrulayın", text)
+	}
 	if config.ResendAPIKey != "" {
 		return verifyURL, sendVerificationWithResend(ctx, user, verifyURL)
 	}
@@ -62,6 +66,36 @@ func createAndSendVerification(ctx context.Context, user User) (string, error) {
 	message := []byte("From: " + from + "\r\nTo: " + user.Email + "\r\nSubject: " + subject + "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body)
 	auth := smtp.PlainAuth("", config.SMTPUser, config.SMTPPassword, config.SMTPHost)
 	return verifyURL, smtp.SendMail(config.SMTPHost+":"+config.SMTPPort, auth, from, []string{user.Email}, message)
+}
+
+func sendWithBrevo(ctx context.Context, user User, subject, textContent string) error {
+	payload, err := json.Marshal(map[string]interface{}{
+		"sender":  map[string]string{"name": "Kuruş", "email": config.BrevoSenderEmail},
+		"to":      []map[string]string{{"email": user.Email, "name": user.Username}},
+		"subject": subject, "textContent": textContent,
+	})
+	if err != nil {
+		return err
+	}
+	requestContext, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestContext, http.MethodPost, "https://api.brevo.com/v3/smtp/email", strings.NewReader(string(payload)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("api-key", config.BrevoAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("email provider returned %s: %s", resp.Status, strings.TrimSpace(string(data)))
+	}
+	return nil
 }
 
 func sendVerificationWithResend(ctx context.Context, user User, verifyURL string) error {
@@ -149,7 +183,10 @@ func forgotPassword(w http.ResponseWriter, r *http.Request) {
 		if tokenErr == nil {
 			_, tokenErr = db.Exec(r.Context(), `INSERT INTO password_reset_tokens(user_id,token_hash,expires_at) VALUES($1,$2,$3)`, user.ID, tokenHash(token), time.Now().Add(30*time.Minute))
 		}
-		if tokenErr == nil && config.ResendAPIKey != "" {
+		if tokenErr == nil && config.BrevoAPIKey != "" {
+			resetURL := publicFrontendURL() + "/?reset=" + url.QueryEscape(token)
+			tokenErr = sendWithBrevo(r.Context(), user, "Kuruş şifrenizi yenileyin", fmt.Sprintf("Merhaba %s,\n\nŞifrenizi yenilemek için bu bağlantıyı açın:\n%s\n\nBağlantı 30 dakika geçerlidir.", user.Username, resetURL))
+		} else if tokenErr == nil && config.ResendAPIKey != "" {
 			tokenErr = sendPasswordResetWithResend(r.Context(), user, publicFrontendURL()+"/?reset="+url.QueryEscape(token))
 		}
 		if tokenErr != nil {

@@ -22,6 +22,8 @@ type Config struct {
 	SMTPFrom           string
 	ResendAPIKey       string
 	EmailFrom          string
+	BrevoAPIKey        string
+	BrevoSenderEmail   string
 }
 
 var config Config
@@ -44,6 +46,7 @@ func loadConfig() (Config, error) {
 		SMTPFrom:     os.Getenv("SMTP_FROM"),
 		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
 		EmailFrom:    envOr("EMAIL_FROM", "Kuruş <onboarding@resend.dev>"),
+		BrevoAPIKey:  os.Getenv("BREVO_API_KEY"), BrevoSenderEmail: os.Getenv("BREVO_SENDER_EMAIL"),
 	}
 
 	if configuration.DatabaseURL == "" {
