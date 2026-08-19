@@ -40,7 +40,7 @@ export function AuthCard() {
     <div className="auth-noise" aria-hidden="true" />
     <section className="auth-story" aria-label="Ürün tanıtımı">
       <a className="auth-brand" href="/" aria-label="Kuruş ana sayfa"><KurusLogo />Kuruş</a>
-      <div className="brand-showcase" aria-hidden="true"><img src="/kurus-social.png" alt="" /><span /></div>
+      <div className="brand-showcase" aria-hidden="true"><KurusLogo className="hero-money-mark" /><span /><i /><b /></div>
       <div className="story-copy"><span className="eyebrow"><span /> Her kuruşun görünür</span><h1>Para sende,<br /><em>karar sende.</em></h1><p>Gelirini, giderini ve hedeflerini tek yerde gör. Bütçeni güvenle yönet, kararlarını net ver.</p><div className="trust-row"><span><Check /> Banka düzeyinde güvenlik</span><span><Check /> Ücretsiz başlangıç</span></div></div>
       <p className="story-foot">Kuruş · Akıllı bütçe yönetimi</p>
     </section>
