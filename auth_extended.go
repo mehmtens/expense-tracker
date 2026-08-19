@@ -224,7 +224,7 @@ func googleRedirectURL(r *http.Request) string {
 	if err != nil || frontend.Host == "" {
 		return config.GoogleRedirectURL
 	}
-	if r.URL.Query().Get("kurus_proxy") == "1" {
+	if strings.HasPrefix(r.URL.Path, "/auth/google/kurus") {
 		return kurusOAuthCallback
 	}
 

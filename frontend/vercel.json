@@ -6,11 +6,11 @@
   "rewrites": [
     {
       "source": "/auth/google",
-      "destination": "https://flowly-api-2o3u.onrender.com/auth/google?kurus_proxy=1"
+      "destination": "https://flowly-api-2o3u.onrender.com/auth/google/kurus"
     },
     {
       "source": "/auth/google/callback",
-      "destination": "https://flowly-api-2o3u.onrender.com/auth/google/callback?kurus_proxy=1"
+      "destination": "https://flowly-api-2o3u.onrender.com/auth/google/kurus/callback"
     },
     { "source": "/((?!assets/|favicon.svg).*)", "destination": "/index.html" }
   ]

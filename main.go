@@ -323,6 +323,8 @@ func main() {
 	http.HandleFunc("/resend-verification", resendVerification)
 	http.HandleFunc("/auth/google", googleStart)
 	http.HandleFunc("/auth/google/callback", googleCallback)
+	http.HandleFunc("/auth/google/kurus", googleStart)
+	http.HandleFunc("/auth/google/kurus/callback", googleCallback)
 
 	http.HandleFunc("/expenses", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
