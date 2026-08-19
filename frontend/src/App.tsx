@@ -44,9 +44,9 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      // Expense loading is intentionally synchronized with authentication state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadExpenses();
-    } else {
-      setExpenses([]);
     }
   }, [isAuthenticated, loadExpenses]);
 

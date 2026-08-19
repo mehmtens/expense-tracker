@@ -34,6 +34,48 @@ const CATEGORY_COLORS: Record<string, string> = {
   Diğer: '#94a3b8',
 };
 
+const formatCurrency = (val: number) =>
+  `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(val)} TL`;
+
+interface TooltipPayloadItem {
+  name?: string;
+  value?: number;
+  payload?: { name: string; value?: number; tutar?: number; color?: string; fill?: string };
+}
+
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  total?: number;
+}
+
+const CustomPieTooltip = ({ active, payload, total = 0 }: ChartTooltipProps) => {
+  if (!active || !payload?.length) return null;
+  const data = payload[0];
+  const value = data.value ?? 0;
+  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+  return (
+    <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl text-xs space-y-1">
+      <div className="font-semibold text-white flex items-center gap-1.5">
+        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.payload?.color || '#94a3b8' }} />
+        {data.name || data.payload?.name}
+      </div>
+      <div className="text-slate-300 font-mono">{formatCurrency(value)} ({percentage}%)</div>
+    </div>
+  );
+};
+
+const CustomBarTooltip = ({ active, payload }: ChartTooltipProps) => {
+  if (!active || !payload?.length) return null;
+  const data = payload[0];
+  return (
+    <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl text-xs space-y-1">
+      <div className="font-semibold text-white">{data.payload?.name}</div>
+      <div className="text-slate-300 font-mono font-bold">{formatCurrency(data.value ?? 0)}</div>
+    </div>
+  );
+};
+
 export const ExpenseCharts: React.FC<ExpenseChartsProps> = ({ expenses }) => {
   // Giderlerin kategoriye göre dağılımı
   const expenseTransactions = expenses.filter((e) => Number(e.amount) < 0);
@@ -76,81 +118,6 @@ export const ExpenseCharts: React.FC<ExpenseChartsProps> = ({ expenses }) => {
       fill: '#f43f5e', // rose-500
     },
   ];
-
-  const formatCurrency = (val: number) => {
-    return (
-      new Intl.NumberFormat('tr-TR', {
-        maximumFractionDigits: 0,
-      }).format(val) + ' TL'
-    );
-  };
-
-  interface PieTooltipPayloadItem {
-    name?: string;
-    value?: number;
-    payload?: {
-      name: string;
-      value: number;
-      color: string;
-    };
-  }
-
-  interface CustomPieTooltipProps {
-    active?: boolean;
-    payload?: PieTooltipPayloadItem[];
-  }
-
-  interface BarTooltipPayloadItem {
-    value?: number;
-    payload?: {
-      name: string;
-      tutar: number;
-      fill: string;
-    };
-  }
-
-  interface CustomBarTooltipProps {
-    active?: boolean;
-    payload?: BarTooltipPayloadItem[];
-  }
-
-  const CustomPieTooltip = ({ active, payload }: CustomPieTooltipProps) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      const val = data.value ?? 0;
-      const percentage = totalExpenseVal > 0 ? ((val / totalExpenseVal) * 100).toFixed(1) : '0';
-      return (
-        <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl text-xs space-y-1">
-          <div className="font-semibold text-white flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: data.payload?.color || '#94a3b8' }}
-            />
-            {data.name || data.payload?.name}
-          </div>
-          <div className="text-slate-300 font-mono">
-            {formatCurrency(val)} ({percentage}%)
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const CustomBarTooltip = ({ active, payload }: CustomBarTooltipProps) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      return (
-        <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-xl text-xs space-y-1">
-          <div className="font-semibold text-white">{data.payload?.name}</div>
-          <div className="text-slate-300 font-mono font-bold">
-            {formatCurrency(data.value ?? 0)}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -197,7 +164,7 @@ export const ExpenseCharts: React.FC<ExpenseChartsProps> = ({ expenses }) => {
                       <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={2} />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomPieTooltip />} />
+                  <Tooltip content={<CustomPieTooltip total={totalExpenseVal} />} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

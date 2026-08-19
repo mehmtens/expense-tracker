@@ -23,6 +23,8 @@ interface CategoryConfig {
   label: string;
 }
 
+// Shared category metadata lives beside the component to keep icon rendering consistent.
+// eslint-disable-next-line react-refresh/only-export-components
 export const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   Market: {
     icon: ShoppingCart,
@@ -98,6 +100,7 @@ export const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
   },
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const getCategoryConfig = (category: string): CategoryConfig => {
   return (
     CATEGORY_CONFIG[category] || {
